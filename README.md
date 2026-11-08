@@ -198,11 +198,14 @@ The manuscript PDF is not currently included in this repository.
 - Additional-dataset analyses train new models rather than transferring PHM2010-trained weights.
 - Saved outputs document previous execution but do not establish clean end-to-end reproduction.
 
-## Author
+## Authors
 
-**Kazi Ahsan Ahmed Akaid**
+1. Kazi Ahsan Ahmed Akaid
+2. Faozia Fariha
 
-GitHub: [@aakaid010](https://github.com/aakaid010)
+## Repository maintainer
+
+Kazi Ahsan Ahmed Akaid — [@aakaid010](https://github.com/aakaid010)
 
 ## Citation
 
