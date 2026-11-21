@@ -9,6 +9,7 @@ Stages
   2 experiments (with --experiments, or after stage 1)   -> results/*.csv   (CPU; the nine-tool runs take ~1 h)
   3 paper       (always)  results/*.csv -> <paper>/generated/*.tex and <paper>/figures/*.pdf
 The paper directory defaults to ../paper or ../manuscript (whichever exists); set it with --paper.
+If neither exists (e.g. a fresh clone), outputs go to ./output/ and the manuscript check is skipped.
 """
 from __future__ import annotations
 
@@ -39,7 +40,8 @@ def main():
     paper = Path(a.paper) if a.paper else next(
         (p for p in (ROOT.parent / "paper", ROOT.parent / "manuscript") if p.exists()), None)
     if paper is None:
-        sys.exit("paper directory not found; pass --paper")
+        paper = ROOT / "output"
+        print(f"no paper directory found (../paper or ../manuscript); writing outputs to {paper}")
     data, res = ROOT / "data", ROOT / "results"
     phm_f, nine_f = data / "phm_features.csv", data / "nine_tool_features.csv"
 
@@ -74,6 +76,8 @@ def main():
     run("fig_results.py", "--results", res, "--out", figs)
     if (paper / "main.tex").exists():
         run("check_manuscript.py", "--tex", paper / "main.tex")
+    else:
+        print(f"skip check_manuscript.py: {paper / 'main.tex'} not found")
 
     sys.path.insert(0, str(S))
     from calib import env_versions

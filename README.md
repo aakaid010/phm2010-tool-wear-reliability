@@ -18,7 +18,8 @@ make all                          # same, where make is available
 ```
 
 `run_all.py` writes LaTeX tables and number macros to `<paper>/generated/` and figure PDFs to
-`<paper>/figures/`, where `<paper>` is `../paper` or `../manuscript` (override with `--paper`). It then
+`<paper>/figures/`, where `<paper>` is `../paper` or `../manuscript` (override with `--paper`); in a fresh
+clone without a paper directory they go to `./output/` and the manuscript check is skipped. It then
 runs `scripts/check_manuscript.py`, which fails if the paper uses a number macro that is not generated,
 cites a key missing from `references.bib`, or exceeds the abstract word limit.
 
@@ -66,6 +67,15 @@ unchanged from the feature-extraction cells of the two notebooks in `notebooks/`
 
 ## Environment
 
+The experiments were originally run in Kaggle notebooks (see `notebooks/`); the tables and figures are
+regenerated locally with the pinned versions in `requirements.txt`. Setup:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scriptsctivate
+pip install -r requirements.txt
+```
+
 `requirements.txt` pins the versions with which the post-processing stage (`run_all.py` without
 data) was rerun and checked on 21 Nov 2026 (Python 3.13.9). The experiment runs that produced
 `results/` were executed on Kaggle before version recording was added to the scripts; their
@@ -95,6 +105,24 @@ archive/              exploratory work not used in the paper (see archive/README
 ```
 
 `results/t2_point_accuracy_legacy.csv` is kept for the record and is not read by any script.
+
+## Citation
+
+If you use this code, please cite the Zenodo archive (concept DOI, always resolves to the latest version):
+
+> K. A. A. Akaid and F. Fariha. *Code for: Calibration Must Match the Deployment Shift — prediction-interval
+> reliability in milling wear monitoring*. Zenodo. doi:[10.5281/zenodo.24378510](https://doi.org/10.5281/zenodo.24378510)
+
+```bibtex
+@software{akaid_fariha_code,
+  author    = {Akaid, Kazi Ahsan Ahmed and Fariha, Faozia},
+  title     = {Code for: Calibration Must Match the Deployment Shift --- prediction-interval reliability in milling wear monitoring},
+  publisher = {Zenodo},
+  version   = {v1.1},
+  doi       = {10.5281/zenodo.24378510},
+  url       = {https://doi.org/10.5281/zenodo.24378510}
+}
+```
 
 ## Authors
 
