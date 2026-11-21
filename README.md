@@ -72,7 +72,7 @@ regenerated locally with the pinned versions in `requirements.txt`. Setup:
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scriptsctivate
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
