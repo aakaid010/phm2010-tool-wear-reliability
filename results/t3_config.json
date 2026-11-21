@@ -1,0 +1,8 @@
+{
+  "n_trees": 300,
+  "blocks": [
+    "interleaved",
+    "late"
+  ],
+  "self_test": false
+}

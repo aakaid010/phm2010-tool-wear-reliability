@@ -1,0 +1,7 @@
+{
+  "n_trees": 300,
+  "tau": 150.0,
+  "fn_cost": 5.0,
+  "persist": 3,
+  "self_test": false
+}

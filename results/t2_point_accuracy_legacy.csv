@@ -1,0 +1,4 @@
+protocol,model,test,mae,source
+chrono,cnn,macro,31.25,MST manuscript Table 1 (original phm2010-02 notebook; not rerun)
+v2,cnn,macro,20.59,MST manuscript Table 1 (original phm2010-02 notebook; not rerun)
+v2,window_rf,macro,19.73,MST manuscript Table 1 (original phm2010-02 notebook; not rerun)

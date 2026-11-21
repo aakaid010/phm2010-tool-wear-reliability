@@ -2,8 +2,15 @@
   "title": "Code for: Calibration Must Match the Deployment Shift — prediction-interval reliability in milling wear monitoring",
   "upload_type": "software",
   "creators": [
-    {"name": "Akaid, Kazi Ahsan Ahmed", "affiliation": "Chittagong University of Engineering & Technology"},
-    {"name": "Fariha, Faozia", "affiliation": "Chittagong University of Engineering & Technology"}
+    {
+      "name": "Akaid, Kazi Ahsan Ahmed",
+      "affiliation": "Chittagong University of Engineering & Technology"
+    },
+    {
+      "name": "Fariha, Faozia",
+      "affiliation": "Chittagong University of Engineering & Technology"
+    }
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "version": "v1.1"
 }

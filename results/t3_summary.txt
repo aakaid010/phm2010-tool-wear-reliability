@@ -1,0 +1,25 @@
+=== Part A: matched predictions, nominal 90% (per-tool mean, then mean/SD over 9 tools) ===
+      block           scheme  coverage_mean  coverage_std  width_mean  width_std  interval_score_mean  interval_score_std  cov_stage1_mean  cov_stage1_std  cov_stage2_mean  cov_stage2_std  cov_stage3_mean  cov_stage3_std
+interleaved    S1_same_tools          52.32         28.52       10.65       0.94                69.55               47.15            54.79           26.12            60.80           36.27            41.39           31.67
+interleaved  S2_same_machine          84.49         14.87       27.70       9.50                42.44               13.73            87.23           14.21            92.94           15.56            73.31           23.74
+interleaved S3_other_machine          78.62         17.78       26.30       4.29                50.46               22.36            85.62           13.93            83.57           19.59            66.68           24.94
+       late    S1_same_tools          97.35          2.08       90.10       1.58                92.43                3.25           100.00            0.00           100.00            0.00            92.05            6.25
+       late  S2_same_machine          89.37          3.71       54.45       7.06                80.61               12.76            98.94            1.68           100.00            0.00            69.20           10.73
+       late S3_other_machine          89.35          4.00       52.93       2.83                80.08               12.46            98.89            2.06            99.57            1.23            69.63           11.36
+
+=== Part B: tool-held-out deployment, nominal 90% ===
+             scheme       block  coverage_mean  coverage_std  width_mean  width_std  interval_score_mean  interval_score_std  cov_stage1_mean  cov_stage1_std  cov_stage2_mean  cov_stage2_std  cov_stage3_mean  cov_stage3_std
+      S1_same_tools interleaved          53.69         29.11       11.02       0.96                66.12               44.74            55.33           26.70            62.35           37.60            43.39           33.80
+      S1_same_tools        late          97.41          2.18       90.42       1.59                92.41                2.79           100.00            0.00           100.00            0.00            92.24            6.54
+            S4_loto           -          88.81         12.44       29.44       1.44                38.90               11.49            96.43            5.84            93.86           16.24            76.16           23.76
+S4u_loto_unweighted           -          87.25         14.04       28.40       1.38                39.15               12.77            95.71            6.30            92.43           19.65            73.62           25.99
+Wilcoxon S1[interleaved] vs S4 coverage (n=9, descriptive): p=0.0039; |cov-90| p=0.0195; S4 closer to nominal on 7/9 tools
+Wilcoxon S1[late] vs S4 coverage (n=9, descriptive): p=0.0547; |cov-90| p=1.0000; S4 closer to nominal on 4/9 tools
+
+=== Part C: leave-one-machine-out, nominal 90% ===
+             scheme       block  coverage_mean  coverage_std  width_mean  width_std  interval_score_mean  interval_score_std  cov_stage1_mean  cov_stage1_std  cov_stage2_mean  cov_stage2_std  cov_stage3_mean  cov_stage3_std
+      S1_same_tools interleaved          29.06         29.24       10.86       2.49               165.50               93.80            32.28           41.51            34.10           44.64            20.86           15.30
+      S1_same_tools        late          96.44          2.47       89.69       2.59                93.47                3.66            99.67            0.99           100.00            0.00            89.67            7.10
+            S4_loto           -          65.82         24.31       30.16       3.15                78.07               40.24            70.14           33.52            71.39           34.52            55.96           20.17
+S4u_loto_unweighted           -          63.42         25.74       29.18       3.87                81.68               43.77            66.99           35.68            68.85           35.82            54.44           20.96
+            S5_lomo           -          94.48          8.09       57.26       9.16                64.62               11.73            97.74            4.26            98.74            3.60            86.96           21.67

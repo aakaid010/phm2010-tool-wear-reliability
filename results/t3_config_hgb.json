@@ -1,0 +1,11 @@
+{
+  "model": "hgb",
+  "n_trees_or_iter": 300,
+  "blocks": [
+    "interleaved",
+    "late"
+  ],
+  "only_b": false,
+  "skip_a": false,
+  "self_test": false
+}

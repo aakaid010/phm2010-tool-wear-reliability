@@ -1,0 +1,6 @@
+{
+  "model": "hgb",
+  "n_iter_or_trees": 300,
+  "matched_only": true,
+  "self_test": false
+}
