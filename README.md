@@ -1,4 +1,5 @@
-# Calibration Must Match the Deployment Shift — code and results
+# Calibration Sources for Conformal Tool-Wear Prediction Under Tool and Machine Shift
+and Machine Shift
 
 Code, result files and the literature table behind the paper
 
