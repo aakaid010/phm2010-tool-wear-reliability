@@ -4,7 +4,7 @@ Input : phm_features.csv  (945 x 87; output of phm2010-01-data-exploration)
         optional phm_sequences.npz (for the window-RF row of Table 1)
 Output: <out>/t1_matched_rf.csv          one row per protocol x test x train x cal-source x level
         <out>/t1_matched_rf_summary.csv  mean over the 6 directed combinations
-        <out>/t2_point_accuracy.csv      Table 1 (chronological + V2, RF / window-RF / cut-index)
+        <out>/t2_point_accuracy.csv      Table 1 (chronological + interleaved split, RF / window-RF / cut-index)
         <out>/t2_warning_timing.csv      Table 4 incl. cut-index rows
         <out>/wear_rate_phm.csv          per-cutter, per-stage wear slope (um/cut)
 
@@ -31,9 +31,9 @@ CUTTERS = [1, 4, 6]
 TAU = 150.0          # illustrative wear threshold (um) - same as MST Table 4
 FN_COST = 5.0        # FP + 5 FN tuning criterion
 PERSIST = 3          # consecutive exceedances
-V2_TRAIN = [1, 3, 5, 6, 7, 9, 10, 11, 13, 15]
-V2_VAL = [4, 12]
-V2_CAL = [2, 8, 14]
+ILV_TRAIN = [1, 3, 5, 6, 7, 9, 10, 11, 13, 15]
+ILV_UNUSED = [4, 12]  # interleaved split: blocks fitted on neither model nor calibration (RF has no early stopping)
+ILV_CAL = [2, 8, 14]
 N_TREES = 300
 MODEL = "rf"  # "rf" (primary) or "hgb" (model-agnosticism check); set by --model
 
@@ -53,8 +53,8 @@ def split_masks(protocol, cut):
     if protocol == "chrono":
         return {"train": cut <= 220, "val": (cut >= 221) & (cut <= 260), "cal": cut >= 261}
     block = (cut - 1) // 21 + 1
-    return {"train": np.isin(block, V2_TRAIN), "val": np.isin(block, V2_VAL),
-            "cal": np.isin(block, V2_CAL)}
+    return {"train": np.isin(block, ILV_TRAIN), "val": np.isin(block, ILV_UNUSED),
+            "cal": np.isin(block, ILV_CAL)}
 
 
 # ----------------------------------------------------------------------------
@@ -72,7 +72,7 @@ def run_matched(df, feats):
                 mA = split_masks(protocol, dA.cut)
                 mB = split_masks(protocol, dB.cut)
                 # RF needs no early stopping; validation cuts are simply unused,
-                # exactly as in the MST V2 matched RF.
+                # exactly as in the MST interleaved matched RF.
                 model = make_rf().fit(dA.loc[mA["train"], feats], dA.loc[mA["train"], "wear_max"])
                 yhatT = model.predict(dT[feats])
 
@@ -304,7 +304,7 @@ def main():
                                "interval_score_mean", "cov_stage3_mean"]]
     print("\n=== T1 matched RF, nominal 90% (mean of 6 directed combos) ===")
     print(s90.round(2).to_string(index=False))
-    print("Sanity: V2 same/other should reproduce MST Table 3 (14.87/84.18 %, 9.51/84.45 um).")
+    print("Sanity: interleaved same/other should reproduce MST Table 3 (14.87/84.18 %, 9.51/84.45 um).")
     print("\n=== T2 point accuracy (macro MAE) ===")
     print(acc.groupby(["protocol", "model"]).mae.mean().round(2).to_string())
     print("\n=== T2 first warnings @150 um (chronological) ===")

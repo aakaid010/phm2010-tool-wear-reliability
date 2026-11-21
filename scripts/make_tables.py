@@ -5,7 +5,7 @@
 Writes
   tab_phm_matched.tex     T1: calibration source x split x model (RF; HGB if run) at nominal 90%,
                           plus training-label-range reference rows
-  tab_point_accuracy.tex  T2: macro MAE, chronological + V2, RF vs cut index
+  tab_point_accuracy.tex  T2: macro MAE, chronological + interleaved split, RF vs cut index
   tab_warning.tex         T2: first warnings at 150 um, RF vs cut index, both splits
   tab_ninetool.tex        T3 (RF): new tool, new machine, matched S1/S2/S3 panels at 90%
   tab_ninetool_hgb.tex    T3 (HGB): same layout, model-agnosticism check (if run)
@@ -90,7 +90,7 @@ def phm_matched(results, out):
     g = d.groupby(["protocol", "model_name", "cal_source"])[cols].agg(["mean", "std", "min"])
     lr = load(results, "t1_label_range.csv")
     gl = lr.groupby(["protocol", "reference"])[cols].agg(["mean", "std", "min"]) if lr is not None else None
-    split_name = {"chrono": "Chronological", "v2": "Interleaved (V2)"}
+    split_name = {"chrono": "Chronological", "v2": "Interleaved"}
     ref_name = {"minmax": "Reference: training-label range, min--max",
                 "p05_p95": "Reference: training-label range, 5th--95th pct."}
 
@@ -110,9 +110,9 @@ def phm_matched(results, out):
             for ref in ["minmax", "p05_p95"]:
                 r = gl.loc[(prot, ref)]
                 rows.append(fmt_row(prot, "--", ref_name[ref], r))
-                tag = {"chrono": "Chrono", "v2": "Vtwo"}[prot] + {"minmax": "MinMax", "p05_p95": "Pct"}[ref]
+                tag = {"chrono": "Chrono", "v2": "Ilv"}[prot] + {"minmax": "MinMax", "p05_p95": "Pct"}[ref]
                 if ref == "minmax":  # highest training label any single training cutter saw
-                    ptag = {"chrono": "Chrono", "v2": "Vtwo"}[prot]
+                    ptag = {"chrono": "Chrono", "v2": "Ilv"}[prot]
                     macro(f"maxTrainLabel{ptag}",
                           lr[(lr.protocol == prot) & (lr.reference == ref)].upper.max())
                 macro(f"covRange{tag}", r[("coverage", "mean")])
@@ -120,7 +120,7 @@ def phm_matched(results, out):
                 macro(f"isRange{tag}", r[("interval_score", "mean")])
                 macro(f"covLastRange{tag}", r[("cov_stage3", "mean")])
     for (prot, model, src), r in g.iterrows():
-        tag = {"chrono": "Chrono", "v2": "Vtwo"}[prot] + {"RF": "RF", "HGB": "Hgb"}[model] + \
+        tag = {"chrono": "Chrono", "v2": "Ilv"}[prot] + {"RF": "RF", "HGB": "Hgb"}[model] + \
             {"same_cutter": "Same", "other_cutter_same_range": "OtherRange",
              "other_cutter_full_life": "OtherFull"}[src]
         macro(f"cov{tag}", r[("coverage", "mean")])
@@ -172,7 +172,7 @@ def spearman_macros(results):
     src = {"all": "All", "same_cutter": "Same", "other_cutter_same_range": "OtherRange",
            "other_cutter_full_life": "OtherFull"}
     for _, r in sp.iterrows():
-        tag = {"chrono": "Chrono", "v2": "Vtwo"}[r.protocol] + src[r.cal_source]
+        tag = {"chrono": "Chrono", "v2": "Ilv"}[r.protocol] + src[r.cal_source]
         macro(f"rhoMismatch{tag}", r.spearman_rho)
         macro(f"nMismatch{tag}", str(int(r.n_points)))
         macro(f"nDistinctMismatch{tag}", str(int(r.n_distinct_mismatch)))
@@ -188,7 +188,7 @@ def derived_macros():
         "ratioWidLomoLoto": ("widMachSFive", "widMachSFour"),
         "ratioWidHgbLomoLoto": ("widHgbMachSFive", "widHgbMachSFour"),
         "ratioWidChronoSameRange": ("widChronoRFSame", "widRangeChronoMinMax"),
-        "ratioWidVtwoOtherRange": ("widVtwoRFOtherRange", "widRangeVtwoMinMax"),
+        "ratioWidIlvOtherRange": ("widIlvRFOtherRange", "widRangeIlvMinMax"),
     }
     for name, (a, b) in pairs.items():
         if a in MACROS and b in MACROS:
@@ -207,17 +207,17 @@ def point_accuracy(results, out):
     rows = [[names[m], fmt(r.get("chrono", np.nan)), fmt(r.get("v2", np.nan))] for m, r in g.iterrows()]
     for prot in g.columns:  # how many held-out cutters the RF beats the index on
         p = per.loc[prot]
-        ptag = {"chrono": "Chrono", "v2": "Vtwo"}[prot]
+        ptag = {"chrono": "Chrono", "v2": "Ilv"}[prot]
         macro(f"nRFbeatsIdx{ptag}", str(int((p.rf < p.cut_index).sum())))
     for m, r in g.iterrows():
         key = {"rf": "RF", "cut_index": "CutIdx"}[m]
         for prot in g.columns:
-            ptag = {"chrono": "Chrono", "v2": "Vtwo"}[prot]
+            ptag = {"chrono": "Chrono", "v2": "Ilv"}[prot]
             if not pd.isna(r[prot]):
                 macro(f"mae{key}{ptag}", r[prot])
     write_table(out / "tab_point_accuracy.tex",
                 "Cutter-macro MAE ($\\mu$m) over three held-out PHM2010 cutters, two source cutters per fold.",
-                "tab:point_accuracy", "Model & Chronological & Interleaved (V2)", rows, "lrr")
+                "tab:point_accuracy", "Model & Chronological & Interleaved", rows, "lrr")
 
 
 def warning(results, out):
@@ -237,13 +237,13 @@ def warning(results, out):
         for test, g in dp.groupby("test"):
             r = {(m, rule): g[(g.model == m) & (g.rule == rule)].iloc[0]
                  for m in ["rf", "cut_index"] for rule in rules}
-            rows.append([{"chrono": "Chrono.", "v2": "V2"}[prot], test,
+            rows.append([{"chrono": "Chrono.", "v2": "Interleaved"}[prot], test,
                          int(r[("rf", "point_150")].first_crossing)]
                         + [cell(r[(m, rule)]) for m in ["rf", "cut_index"] for rule in rules]
                         + [f"{r[('rf', 'point_150')].auc:.3f}", f"{r[('cut_index', 'point_150')].auc:.3f}"])
             for m, mk in [("rf", "RF"), ("cut_index", "CutIdx")]:
                 t = r[(m, "tuned")]
-                tag = {"chrono": "Chrono", "v2": "Vtwo"}[prot] + mk + test.replace("C", "C") \
+                tag = {"chrono": "Chrono", "v2": "Ilv"}[prot] + mk + test.replace("C", "C") \
                     .replace("1", "One").replace("4", "Four").replace("6", "Six")
                 macro(f"auc{tag}", t.auc, "{:.3f}")
                 macro(f"warn{tag}", "none" if pd.isna(t.first_warning) else str(int(t.first_warning)))
