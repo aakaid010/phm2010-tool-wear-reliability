@@ -38,6 +38,10 @@ def main():
                    if os.path.exists(os.path.join(root, "generated", f)))
     bib = open(os.path.join(root, "references.bib"), encoding="utf-8").read()
     ok = True
+    ctrl = sorted({hex(ord(c)) for c in tex if ord(c) < 32 and c not in "\n\t\r"})
+    if ctrl or "\r" in tex.replace("\r\n", ""):
+        print("control characters in main.tex (e.g. a mangled \\r macro):", ctrl or ["0xd"])
+        ok = False
 
     defined = set(re.findall(r"\\newcommand\{\\([A-Za-z]+)\}", nums)) | {"um", "textsuperscript"}
     sty = os.path.join(root, "ijphm.sty")
