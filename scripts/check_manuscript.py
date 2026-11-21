@@ -33,7 +33,9 @@ def main():
     root = os.path.dirname(os.path.abspath(a.tex))
     tex = open(a.tex, encoding="utf-8").read()
     body = strip_comments(tex)
-    nums = open(os.path.join(root, "generated", "numbers.tex"), encoding="utf-8").read()
+    nums = "".join(open(os.path.join(root, "generated", f), encoding="utf-8").read()
+                   for f in ("numbers.tex", "lit_numbers.tex")
+                   if os.path.exists(os.path.join(root, "generated", f)))
     bib = open(os.path.join(root, "references.bib"), encoding="utf-8").read()
     ok = True
 

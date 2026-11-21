@@ -261,6 +261,88 @@ def warning(results, out):
                 rows, "llrllllllrr", wide=True)
 
 
+def warning_cost(results, out):
+    """Decision cost of first warnings (warning_cost.py output); main window W = 30 cuts."""
+    d = load(results, "t2_warning_cost.csv")
+    if d is None:
+        return
+    W0 = 30
+    rules = [("tuned", "Tuned"), ("tuned_3consec", "TunedThree"), ("point_150", "Fixed")]
+    models = [("rf", "RF"), ("cut_index", "CutIdx")]
+    ptags = {"chrono": "Chrono", "v2": "Ilv"}
+    short = {"premature": "P", "timely": "T", "late": "L", "missed": "M"}
+    has_conf = "fp_cuts" in d.columns and d.fp_cuts.notna().all()
+    m = d[d.window == W0]
+
+    def cell(r):
+        return f"{r.cost:.0f} ({short[r['class']]})"
+
+    rows = []
+    for prot in ["chrono", "v2"]:
+        dp = m[m.protocol == prot]
+        for test, g in dp.groupby("test"):
+            get = {(mm, rr): g[(g.model == mm) & (g.rule == rr)].iloc[0] for mm, _ in models
+                   for rr, _ in rules}
+            row = [{"chrono": "Chrono.", "v2": "Interleaved"}[prot], test,
+                   int(get[("rf", "tuned")].first_crossing)]
+            for mm, _ in models:
+                for rr, _ in rules:
+                    row.append(cell(get[(mm, rr)]))
+            if has_conf:
+                for mm, _ in models:
+                    t = get[(mm, "tuned")]
+                    row.append(f"{int(t.fp_cuts)}/{int(t.fn_cuts)}")
+            rows.append(row)
+            ctag = test.replace("1", "One").replace("4", "Four").replace("6", "Six")
+            for mm, mk in models:
+                for rr, rk in rules:
+                    t = get[(mm, rr)]
+                    macro(f"cost{ptags[prot]}{mk}{ctag}{rk}", t.cost, "{:.0f}")
+                    macro(f"class{ptags[prot]}{mk}{ctag}{rk}", t["class"])
+        tot = dp.groupby(["model", "rule"]).cost.sum()
+        trow = [{"chrono": "Chrono.", "v2": "Interleaved"}[prot], "Total", ""]
+        for mm, mk in models:
+            for rr, rk in rules:
+                trow.append(f"{tot[(mm, rr)]:.0f}")
+                macro(f"costTot{ptags[prot]}{mk}{rk}", tot[(mm, rr)], "{:.0f}")
+        if has_conf:
+            trow += ["", ""]
+        rows.append(trow)
+        # number of cutters on which the RF's cost is lower than the cut-index curve's
+        for rr, rk in rules:
+            a = dp[(dp.model == "rf") & (dp.rule == rr)].set_index("test").cost
+            b = dp[(dp.model == "cut_index") & (dp.rule == rr)].set_index("test").cost
+            macro(f"nRFlowerCost{ptags[prot]}{rk}", str(int((a < b).sum())))
+            macro(f"nRFtiesCost{ptags[prot]}{rk}", str(int((a == b).sum())))
+    # window sensitivity: does the RF-vs-index ordering of total cost change with W?
+    changed = []
+    for prot in ["chrono", "v2"]:
+        for rr, _ in rules:
+            signs = set()
+            for W, g in d[(d.protocol == prot) & (d.rule == rr)].groupby("window"):
+                s = g.groupby("model").cost.sum()
+                signs.add(int(np.sign(s["rf"] - s["cut_index"])))
+            if len(signs) > 1:
+                changed.append(f"{prot}/{rr}")
+    macro("warnWindowMain", str(W0))
+    macro("warnWindowsSens", " and ".join(str(w) for w in sorted(d.window.unique()) if w != W0))
+    macro("warnOrderSens", "did not change" if not changed else "changed for " + ", ".join(changed))
+    header = ("Split & Cutter & Crossing & RF tuned & RF tuned 3c & RF 150 & Index tuned & "
+              "Index tuned 3c & Index 150")
+    align = "llr" + "r" * 6
+    if has_conf:
+        header += " & RF FP/FN & Index FP/FN"
+        align += "rr"
+    write_table(out / "tab_warning_cost.tex",
+                f"Decision cost of the first warnings in Table~\\ref{{tab:warning}} (lower is better), "
+                f"scored against a window of {W0} cuts ending at the measured 150~$\\mu$m crossing. "
+                "Premature (P): cost = cuts of tool life given up before the window; timely (T): 0; "
+                "late (L): 5 $\\times$ cuts after the crossing; missed (M): 5 $\\times$ cuts from the "
+                "crossing to cut 315. Totals are sums over the three cutters."
+                + (" FP/FN: per-cut false positives/negatives of the tuned rule." if has_conf else ""),
+                "tab:warning_cost", header, rows, align, wide=True)
+
+
 def ninetool(results, out, sfx="", model_label="RF", mprefix=""):
     rows = []
     panels = [("t3_deploy", "New tool", "Tool"), ("t3_machine_out", "New machine", "Mach"),
@@ -324,6 +406,7 @@ def main():
     phm_matched(res, out)
     point_accuracy(res, out)
     warning(res, out)
+    warning_cost(res, out)
     ninetool(res, out)
     ninetool(res, out, sfx="_hgb", model_label="HGB", mprefix="Hgb")
     wilcoxon_macros(res)

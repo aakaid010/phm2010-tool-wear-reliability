@@ -200,15 +200,20 @@ def warning_rows(dT, yhat, cutoff, protocol, kind):
     rules = {"point_150": yhat >= TAU, "tuned": yhat >= cutoff,
              "tuned_3consec": persistent(yhat >= cutoff, PERSIST)}
     rows = []
+    worn = y >= TAU
     for rule, flags in rules.items():
         fw = first_index(flags, cuts)
         pre = flags & (cuts < cross) if cross is not None else flags
         episodes = int(np.sum(pre & ~np.r_[False, pre[:-1]]))
+        # per-cut confusion counts of this rule on the test cutter (added for the IJPHM
+        # warning-cost table; requires a rerun - not in the 20 Nov 2026 results)
+        fp_cuts, fn_cuts = int(np.sum(flags & ~worn)), int(np.sum(~flags & worn))
         rows.append({"protocol": protocol, "model": kind, "test": f"C{int(dT.cutter.iloc[0])}",
                      "rule": rule, "cutoff": cutoff if rule != "point_150" else TAU,
                      "first_crossing": cross, "first_warning": fw,
                      "delay_cuts": (fw - cross) if (fw is not None and cross is not None) else None,
                      "pre_crossing_episodes": episodes,
+                     "fp_cuts": fp_cuts, "fn_cuts": fn_cuts,
                      "auc": roc_auc_score(y >= TAU, yhat) if 0 < (y >= TAU).sum() < len(y) else np.nan})
     return rows
 
