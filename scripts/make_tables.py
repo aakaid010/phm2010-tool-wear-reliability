@@ -202,9 +202,19 @@ def point_accuracy(results, out):
     d = d[d.model.isin(["rf", "cut_index"])]  # window-RF / CNN are out of scope
     g = d.groupby(["model", "protocol"]).mae.mean().unstack().loc[["rf", "cut_index"]]
     per = d.pivot_table(index=["protocol", "test"], columns="model", values="mae")
-    names = {"rf": "84-feature full-recording RF", "cut_index": "Quadratic cut-index (no sensors)"}
+    names = {"rf": "RF (84 features)", "cut_index": "Cut-index curve"}
     fmt = lambda v: "--" if pd.isna(v) else f"{v:.2f}"
-    rows = [[names[m], fmt(r.get("chrono", np.nan)), fmt(r.get("v2", np.nan))] for m, r in g.iterrows()]
+    tests = sorted(d.test.unique())
+    rows = []
+    for prot, pname in [("chrono", "Chronological"), ("v2", "Interleaved")]:
+        for m in ["rf", "cut_index"]:
+            rows.append([pname, names[m]] + [fmt(per.loc[(prot, c), m]) for c in tests]
+                        + [fmt(g.loc[m, prot])])
+            for c in tests:  # per-cutter MAE macros, e.g. \maeRFChronoCOne
+                ctag = c.replace("1", "One").replace("4", "Four").replace("6", "Six")
+                macro(f"mae{ {'rf': 'RF', 'cut_index': 'CutIdx'}[m] }"
+                      f"{ {'chrono': 'Chrono', 'v2': 'Ilv'}[prot] }{ctag}".replace(" ", ""),
+                      per.loc[(prot, c), m])
     for prot in g.columns:  # how many held-out cutters the RF beats the index on
         p = per.loc[prot]
         ptag = {"chrono": "Chrono", "v2": "Ilv"}[prot]
@@ -216,8 +226,11 @@ def point_accuracy(results, out):
             if not pd.isna(r[prot]):
                 macro(f"mae{key}{ptag}", r[prot])
     write_table(out / "tab_point_accuracy.tex",
-                "Cutter-macro MAE ($\\mu$m) over three held-out PHM2010 cutters, two source cutters per fold.",
-                "tab:point_accuracy", "Model & Chronological & Interleaved", rows, "lrr")
+                "MAE ($\\mu$m) on each held-out PHM2010 cutter and the cutter-macro mean; each fold "
+                "uses the other two cutters as sources.",
+                "tab:point_accuracy",
+                "Split & Model & " + " & ".join(tests) + " & Macro mean", rows,
+                "ll" + "r" * (len(tests) + 1))
 
 
 def warning(results, out):
