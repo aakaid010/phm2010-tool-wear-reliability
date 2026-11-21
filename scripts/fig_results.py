@@ -83,7 +83,7 @@ def fig_pertool(res, out):
     fig.legend(handles=handles, loc="lower center", ncol=3, frameon=False,
                bbox_to_anchor=(0.5, -0.01))
     fig.tight_layout(rect=(0, 0.07, 1, 1))
-    fig.savefig(out / "fig_coverage_pertool.pdf")
+    fig.savefig(out / "fig_coverage_pertool.pdf", metadata={"CreationDate": None, "ModDate": None})
     fig.savefig(out / "fig_coverage_pertool.png", dpi=200)
     plt.close(fig)
 
@@ -118,7 +118,7 @@ def fig_levels(res, out):
     fig.legend(handles=handles, loc="lower center", ncol=7, frameon=False,
                bbox_to_anchor=(0.5, -0.01), handlelength=1.8, columnspacing=1.0)
     fig.tight_layout(rect=(0, 0.08, 1, 1))
-    fig.savefig(out / "fig_coverage_levels.pdf")
+    fig.savefig(out / "fig_coverage_levels.pdf", metadata={"CreationDate": None, "ModDate": None})
     fig.savefig(out / "fig_coverage_levels.png", dpi=200)
     plt.close(fig)
 

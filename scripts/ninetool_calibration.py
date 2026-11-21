@@ -49,7 +49,7 @@ import pandas as pd
 from sklearn.ensemble import HistGradientBoostingRegressor, RandomForestRegressor
 from sklearn.metrics import mean_absolute_error
 
-from calib import evaluate_all_levels, group_equal_weights, stage_index, stage_wear_rates
+from calib import evaluate_all_levels, group_equal_weights, stage_index, stage_wear_rates, env_versions
 
 FEATURE_NAMES = ["mean", "std", "rms", "min", "max", "ptp", "skew", "kurtosis",
                  "energy_0", "energy_1", "energy_2", "energy_3"]
@@ -262,7 +262,7 @@ def main():
     if MODEL == "rf":
         wear_rates(df).to_csv(out / "wear_rate_ninetool.csv", index=False)
     (out / f"t3_summary{sfx}.txt").write_text("\n".join(lines), encoding="utf-8")
-    json.dump({"model": MODEL, "n_trees_or_iter": N_TREES, "blocks": BLOCKS,
+    json.dump({**env_versions(), "model": MODEL, "n_trees_or_iter": N_TREES, "blocks": BLOCKS,
                "only_b": a.only_b, "skip_a": a.skip_a, "self_test": a.self_test},
               open(out / f"t3_config{sfx}.json", "w"), indent=2)
 

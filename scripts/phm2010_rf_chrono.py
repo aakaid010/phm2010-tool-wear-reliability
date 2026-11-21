@@ -25,7 +25,7 @@ from scipy.stats import kurtosis, skew
 from sklearn.ensemble import HistGradientBoostingRegressor, RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, roc_auc_score
 
-from calib import LEVELS, evaluate_all_levels, stage_wear_rates
+from calib import LEVELS, evaluate_all_levels, stage_wear_rates, env_versions
 
 CUTTERS = [1, 4, 6]
 TAU = 150.0          # illustrative wear threshold (um) - same as MST Table 4
@@ -288,7 +288,7 @@ def main():
                                               "width_mean", "interval_score_mean", "cov_stage3_mean"]]
         print(f"\n=== T1 matched {MODEL.upper()}, nominal 90% (mean of 6 directed combos) ===")
         print(s90.round(2).to_string(index=False))
-        json.dump({"model": MODEL, "n_iter_or_trees": N_TREES, "matched_only": True,
+        json.dump({**env_versions(), "model": MODEL, "n_iter_or_trees": N_TREES, "matched_only": True,
                    "self_test": a.self_test},
                   open(out / f"phm2010_{MODEL}_config.json", "w"), indent=2)
         return
@@ -296,7 +296,7 @@ def main():
     acc.to_csv(out / "t2_point_accuracy.csv", index=False)
     warn.to_csv(out / "t2_warning_timing.csv", index=False)
     wear_rates(df).to_csv(out / "wear_rate_phm.csv", index=False)
-    json.dump({"n_trees": N_TREES, "tau": TAU, "fn_cost": FN_COST, "persist": PERSIST,
+    json.dump({**env_versions(), "n_trees": N_TREES, "tau": TAU, "fn_cost": FN_COST, "persist": PERSIST,
                "self_test": a.self_test}, open(out / "phm2010_rf_config.json", "w"), indent=2)
 
     pd.set_option("display.width", 200)

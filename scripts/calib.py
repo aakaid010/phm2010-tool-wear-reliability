@@ -93,3 +93,12 @@ def evaluate_all_levels(y, yhat, order, residuals, weights=None, levels=LEVELS):
         row.update(stage_coverage(y, yhat, q, order))
         rows.append(row)
     return rows
+
+
+def env_versions():
+    """Interpreter and package versions, written into every run's config JSON."""
+    import platform
+    import scipy
+    import sklearn
+    return {"python": platform.python_version(), "numpy": np.__version__, "pandas": pd.__version__,
+            "scipy": scipy.__version__, "scikit_learn": sklearn.__version__}
