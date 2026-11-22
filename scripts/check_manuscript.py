@@ -44,9 +44,10 @@ def main():
         ok = False
 
     defined = set(re.findall(r"\\newcommand\{\\([A-Za-z]+)\}", nums)) | {"um", "textsuperscript"}
-    sty = os.path.join(root, "ijphm.sty")
-    if os.path.exists(sty):  # commands provided by the layout package
-        defined |= set(re.findall(r"\\newcommand\{\\([A-Za-z]+)\}", open(sty, encoding="utf-8").read()))
+    # Springer Nature template (sn-jnl.cls) front/back-matter commands and preamble packages
+    defined |= {"abstract", "affil", "bmhead", "city", "country", "email", "fnm", "keywords",
+                "orgaddress", "orgdiv", "orgname", "postcode", "street", "sur", "burl",
+                "providecommand", "raggedbottom", "textwidth", "tfrac"}
     used = set(re.findall(r"\\([A-Za-z]+)", body))
     custom = {u for u in used if u not in LATEX}
     undefined = sorted(custom - defined)
@@ -109,8 +110,8 @@ def main():
     m = re.search(r"\\begin\{abstract\}(.*?)\\end\{abstract\}", body, re.S)
     if m:
         ab = m.group(1)
-    else:  # \ijphmabstract{...}: take the brace-matched argument
-        i = body.index("\\ijphmabstract{") + len("\\ijphmabstract{")
+    else:  # \abstract{...} (sn-jnl): take the brace-matched argument
+        i = body.index("\\abstract{") + len("\\abstract{")
         depth, j = 1, i
         while depth:
             depth += {"{": 1, "}": -1}.get(body[j], 0)
@@ -124,9 +125,14 @@ def main():
         elif not stack or stack.pop() != name:
             print("ENVIRONMENT MISMATCH at \\end{" + name + "}")
             ok = False
+    ab = ab.replace("\\um{}", " ").replace("\\um", " ")  # the unit is not a word of its own
     words = len(re.sub(r"\\[A-Za-z]+(\{\})?", "N", ab).split())
     print("abstract words (each macro = 1 word):", words, "(limit 250)")
     ok &= words <= 250
+    kw = re.search(r"\\keywords\{([^}]*)\}", body)
+    nkw = len([k for k in kw.group(1).split(",") if k.strip()]) if kw else 0
+    print("keywords:", nkw, "(IJAMT: 4-6)")
+    ok &= 4 <= nkw <= 6
     print("ALL CHECKS PASS" if ok else "SOME CHECKS FAILED")
 
 

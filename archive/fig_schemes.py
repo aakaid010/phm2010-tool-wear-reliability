@@ -1,4 +1,4 @@
-"""Schematic figures for the IJPHM manuscript (no data; layout only).
+"""Schematic figures for an earlier manuscript draft (no data; layout only).
 
   fig_overview.pdf : study overview - only components that were evaluated
   fig_schemes.pdf  : calibration schemes S1-S5 as train / calibrate / test bars per tool

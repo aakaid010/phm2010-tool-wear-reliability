@@ -22,12 +22,13 @@ DESIGN = {  # literal -> where the value is fixed in the study design
     "9": "tools in the nine-tool data", "1": "cutter / machine identifiers", "4": "cutter C4",
     "6": "cutter C6", "2": "machine 2", "5": "false-negative weight in tuning and cost",
     "12": "physical tools in the study", "20": "sensitivity window", "30": "main warning window",
-    "2010": "dataset name",
+    "2010": "dataset name", "0.05": "conventional significance level (p < 0.05)",
 }
-SECTIONS = [("abstract", r"\\ijphmabstract\{", r"\n% Keywords"),
-            ("results", r"\\section\{Results\}", r"\\section\{Limitations\}"),
-            ("conclusion", r"\\section\{Conclusion\}", r"\\section\*\{Data and code")]
-WORDS = r"\b(twice|thrice|half|double|triple|(?:two|three|four|five|ten) times)\b"
+SECTIONS = [("abstract", r"\\abstract\{", r"\\keywords\{"),
+            ("results+discussion", r"\\section\{Results\}", r"\\subsection\{Limitations\}"),
+            ("limitations", r"\\subsection\{Limitations\}", r"\\section\{Conclusions\}"),
+            ("conclusion", r"\\section\{Conclusions\}", r"\\bmhead\{Acknowledgements\}")]
+WORDS = r"\b(twice|thrice|half(?!-width)|double|triple|(?:two|three|four|five|ten) times)\b"
 
 
 def strip(s):

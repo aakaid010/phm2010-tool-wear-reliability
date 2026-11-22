@@ -205,7 +205,7 @@ def warning_rows(dT, yhat, cutoff, protocol, kind):
         fw = first_index(flags, cuts)
         pre = flags & (cuts < cross) if cross is not None else flags
         episodes = int(np.sum(pre & ~np.r_[False, pre[:-1]]))
-        # per-cut confusion counts of this rule on the test cutter (added for the IJPHM
+        # per-cut confusion counts of this rule on the test cutter (added for the
         # warning-cost table; requires a rerun - not in the 20 Nov 2026 results)
         fp_cuts, fn_cuts = int(np.sum(flags & ~worn)), int(np.sum(~flags & worn))
         rows.append({"protocol": protocol, "model": kind, "test": f"C{int(dT.cutter.iloc[0])}",

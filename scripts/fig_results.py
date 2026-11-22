@@ -27,15 +27,15 @@ SCHEMES = [  # (scheme, block, label, colour, marker)
     ("S4_loto", "-", "S4 LOTO", "#1baf7a", "^"),
     ("S5_lomo", "-", "S5 LOMO", "#eda100", "D"),
 ]
-PANELS = [("t3_deploy.csv", "New tool"), ("t3_machine_out.csv", "New machine")]
+PANELS = [("t3_deploy.csv", "a  New tool"), ("t3_machine_out.csv", "b  New machine")]
 plt.rcParams.update({
-    "font.family": "serif", "font.serif": ["Times New Roman", "Times", "DejaVu Serif"],
-    "mathtext.fontset": "stix", "font.size": 8, "axes.titlesize": 8.5, "axes.labelsize": 8,
+    "font.family": "sans-serif", "font.sans-serif": ["Arial", "Helvetica", "DejaVu Sans"],
+    "mathtext.fontset": "dejavusans", "font.size": 8, "axes.titlesize": 8.5, "axes.labelsize": 8,
     "xtick.labelsize": 7.5, "ytick.labelsize": 7.5, "legend.fontsize": 7.5,
     "axes.edgecolor": INK2, "axes.labelcolor": INK, "xtick.color": INK2, "ytick.color": INK2,
     "axes.linewidth": 0.6, "pdf.fonttype": 42, "ps.fonttype": 42,
 })
-FULL_WIDTH_IN = 7.0  # two-column IJPHM text width
+FULL_WIDTH_IN = 174 / 25.4  # Springer full-width figure (174 mm)
 
 
 def present(d):
@@ -72,7 +72,7 @@ def fig_pertool(res, out):
         ax.axhline(90, color=INK2, linestyle="--", linewidth=0.8, zorder=2)
         ax.set_xticks(range(len(sch)), [s[2] for s in sch])
         ax.set_xlim(-0.5, len(sch) - 0.3)
-        ax.set_title(title, color=INK)
+        ax.set_title(title, color=INK, loc="left", fontweight="bold")
         style(ax)
     axes[0].set_ylabel("Coverage at nominal 90% (%)")
     axes[0].set_ylim(-3, 103)
@@ -84,7 +84,7 @@ def fig_pertool(res, out):
                bbox_to_anchor=(0.5, -0.01))
     fig.tight_layout(rect=(0, 0.07, 1, 1))
     fig.savefig(out / "fig_coverage_pertool.pdf", metadata={"CreationDate": None, "ModDate": None})
-    fig.savefig(out / "fig_coverage_pertool.png", dpi=200)
+    fig.savefig(out / "fig_coverage_pertool.png", dpi=600)
     plt.close(fig)
 
 
@@ -105,7 +105,7 @@ def fig_levels(res, out):
         ax.set_xlim(45, 100)
         ax.set_xticks([50, 70, 80, 90, 95])
         ax.set_xlabel("Nominal coverage (%)")
-        ax.set_title(title, color=INK)
+        ax.set_title(title, color=INK, loc="left", fontweight="bold")
         style(ax)
     axes[0].set_ylabel("Empirical coverage (%)")
     axes[0].set_ylim(-3, 103)
@@ -119,14 +119,14 @@ def fig_levels(res, out):
                bbox_to_anchor=(0.5, -0.01), handlelength=1.8, columnspacing=1.0)
     fig.tight_layout(rect=(0, 0.08, 1, 1))
     fig.savefig(out / "fig_coverage_levels.pdf", metadata={"CreationDate": None, "ModDate": None})
-    fig.savefig(out / "fig_coverage_levels.png", dpi=200)
+    fig.savefig(out / "fig_coverage_levels.png", dpi=600)
     plt.close(fig)
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--results", default="../results")
-    ap.add_argument("--out", default="../../manuscript/figures")
+    ap.add_argument("--out", default="../manuscript/figures")
     a = ap.parse_args()
     res, out = Path(a.results), Path(a.out)
     out.mkdir(parents=True, exist_ok=True)

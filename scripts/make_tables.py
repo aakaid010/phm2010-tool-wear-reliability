@@ -12,7 +12,7 @@ Writes
   numbers.tex             \\newcommand macros for every number quoted in the text
 Missing CSVs are skipped with a message, so this can run after each experiment.
 
-Scope (IJPHM revision, 20 Nov 2026): the CNN-BiLSTM and window-RF are out of the paper.
+Scope (revision of 20 Nov 2026): the CNN-BiLSTM and window-RF are out of the paper.
 results/t2_point_accuracy_legacy.csv is kept for the record but is NOT read here.
 """
 from __future__ import annotations
@@ -23,9 +23,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-SRC_LABEL = {"same_cutter": "Training cutter",
-             "other_cutter_same_range": "Other cutter, same life range",
-             "other_cutter_full_life": "Other cutter, full life"}
+SRC_LABEL = {"same_cutter": "Training tool",
+             "other_cutter_same_range": "Other tool, same life range",
+             "other_cutter_full_life": "Other tool, full life"}
 SCHEME_LABEL = {"S1_same_tools": "S1 held-out block of training tools",
                 "S2_same_machine": "S2 other tool, same machine",
                 "S3_other_machine": "S3 other tool, other machine",
@@ -41,17 +41,19 @@ def macro(name, value, fmt="{:.2f}"):
 
 
 def write_table(path, caption, label, header, rows, align, fit=True, wide=False):
-    """fit=True scales the tabular to the line width (needs graphicx). wide=True writes a
-    table* that spans both columns of the two-column IJPHM layout. The caption is placed
-    BELOW the table, as the IJPHM template requires. Footnote rows (single-cell rows) are
-    set as a note under the table, above the caption."""
+    """fit=True scales the tabular to the line width (needs adjustbox). wide=True writes a
+    table* that spans both columns of the two-column Springer Nature [iicol] layout. The
+    caption is placed ABOVE the table (Springer style). Footnote rows (single-cell rows) are
+    set as a note under the table."""
     notes = [r for r in rows if len(r) == 1]
     rows = [r for r in rows if len(r) > 1]
     body = "\n".join(" & ".join(map(str, r)) + r" \\" for r in rows)
     tab = (f"\\begin{{tabular}}{{{align}}}\\toprule\n{header} \\\\ \\midrule\n{body}\n"
            "\\bottomrule\\end{tabular}")
-    if fit:  # shrink to the column/page width only if wider; never enlarge (needs adjustbox)
+    if fit and wide:  # shrink to the page width only if wider; never enlarge (needs adjustbox)
         tab = "\\begin{adjustbox}{max width=\\linewidth}\n" + tab + "\n\\end{adjustbox}"
+    elif fit:  # sn-jnl single-column floats break inside adjustbox: tighten instead
+        tab = "{\\footnotesize\\setlength{\\tabcolsep}{3pt}\n" + tab + "}"
     note_txt = ""
     for n in notes:  # strip the \multicolumn wrapper; keep the note text
         t = n[0]
@@ -62,8 +64,8 @@ def write_table(path, caption, label, header, rows, align, fit=True, wide=False)
         note_txt += f"\n\\par\\smallskip\\parbox{{\\linewidth}}{{{t}}}"
     env = "table*" if wide else "table"
     path.write_text(
-        f"\\begin{{{env}}}[tbp]\n\\centering\\small\n{tab}{note_txt}\n"
-        f"\\caption{{{caption}}}\n\\label{{{label}}}\n\\end{{{env}}}\n",
+        f"\\begin{{{env}}}[tbp]\n\\centering\\small\n\\caption{{{caption}}}\n\\label{{{label}}}\n"
+        f"{tab}{note_txt}\n\\end{{{env}}}\n",
         encoding="utf-8")
     print("wrote", path.name)
 
@@ -133,8 +135,8 @@ def phm_matched(results, out):
                 "PHM2010 matched calibration-source comparison at nominal 90\\%: for each model, identical "
                 "test predictions; only the calibration residuals change. RF: random forest; HGB: "
                 "histogram gradient boosting (same features). Mean $\\pm$ SD and worst case over "
-                "six directed train/test combinations from three cutters. Reference rows are fixed bands "
-                "spanning the training cutter's own training labels (no prediction involved). Width and "
+                "six directed train/test combinations from three tools. Reference rows are fixed bands "
+                "spanning the training tool's own training labels (no prediction involved). Width and "
                 "interval score in $\\mu$m.",
                 "tab:phm_matched",
                 "Split & Model & Calibration residuals & Coverage (\\%) & Worst (\\%) & Width & "
@@ -195,6 +197,52 @@ def derived_macros():
             macro(name, f(a) / f(b), "{:.1f}")
 
 
+def deployment_guidance(results, out, level=0.9):
+    """Shop-floor reading of the nine-tool RF intervals (no new experiment; t3_deploy.csv,
+    t3_machine_out.csv and wear_rate_ninetool.csv only).
+    Per test tool: half-width q (um of VB), share of measurements above the upper bound
+    (risk of replacing too late if the upper bound is used as the replacement trigger), and
+    q divided by the tool's own final-third wear rate (um/run) = runs of tool life given up
+    when replacement is triggered by the upper bound instead of the point prediction.
+    Reported as mean over the nine tools (q, above) and median over tools (runs)."""
+    rate = load(results, "wear_rate_ninetool.csv")
+    dep, mo = load(results, "t3_deploy.csv"), load(results, "t3_machine_out.csv")
+    if rate is None or dep is None or mo is None:
+        return
+    last = rate[rate.stage == rate.stage.max()].set_index("tool").slope_um_per_run
+    macro("slopeLastMedNine", float(last.median()), "{:.2f}")
+    macro("slopeLastMinNine", float(last.min()), "{:.2f}")
+    macro("slopeLastMaxNine", float(last.max()), "{:.2f}")
+    specs = [("New tool", dep, "S1_same_tools", "interleaved", "ToolSOneInt", "S1 interleaved blocks"),
+             ("New tool", dep, "S1_same_tools", "late", "ToolSOneLate", "S1 late-life blocks"),
+             ("New tool", dep, "S4_loto", "-", "ToolSFour", "S4 leave-one-tool-out"),
+             ("New machine", mo, "S4_loto", "-", "MachSFour", "S4 leave-one-tool-out"),
+             ("New machine", mo, "S5_lomo", "-", "MachSFive", "S5 leave-one-machine-out")]
+    rows = []
+    for shift, d, scheme, block, tag, lab in specs:
+        g = d[(d.scheme == scheme) & (d.block == block) & np.isclose(d.level, level)].set_index("test")
+        q = g.q
+        runs = q / last.reindex(q.index)
+        macro(f"halfWid{tag}", float(q.mean()), "{:.1f}")
+        macro(f"pctAbove{tag}", float(g.pct_above.mean()), "{:.1f}")
+        macro(f"pctAboveWorst{tag}", float(g.pct_above.max()), "{:.1f}")
+        macro(f"runsHalf{tag}", float(runs.median()), "{:.0f}")
+        rows.append([shift, lab, f"{g.coverage.mean():.1f}", f"{g.cov_stage3.mean():.1f}",
+                     f"{q.mean():.1f}", f"{g.pct_above.mean():.1f} / {g.pct_above.max():.1f}",
+                     f"{runs.median():.0f}"])
+    write_table(out / "tab_deploy_guidance.tex",
+                "Practical reading of the nine-tool RF intervals at nominal 90\\%. Half-width: "
+                "interval half-width in $\\mu$m of flank wear $VB$ (mean over the nine held-out tools). "
+                "Above upper bound: share of measurements above the interval, mean / worst tool; "
+                "if the upper bound triggers replacement, these are the cases in which the tool is "
+                "more worn than the interval admits. Runs given up: half-width divided by each tool's "
+                "own final-third wear rate, median over tools; this is the tool life sacrificed when "
+                "replacement is triggered by the upper bound rather than by the point prediction",
+                "tab:deploy_guidance",
+                "Shift & Calibration source & Coverage (\\%) & Final third (\\%) & Half-width "
+                "($\\mu$m) & Above upper bound (\\%) & Runs given up", rows, "llrrrrr", wide=True)
+
+
 def point_accuracy(results, out):
     d = load(results, "t2_point_accuracy.csv")
     if d is None:
@@ -202,7 +250,7 @@ def point_accuracy(results, out):
     d = d[d.model.isin(["rf", "cut_index"])]  # window-RF / CNN are out of scope
     g = d.groupby(["model", "protocol"]).mae.mean().unstack().loc[["rf", "cut_index"]]
     per = d.pivot_table(index=["protocol", "test"], columns="model", values="mae")
-    names = {"rf": "RF (84 features)", "cut_index": "Cut-index curve"}
+    names = {"rf": "RF", "cut_index": "Wear curve"}
     fmt = lambda v: "--" if pd.isna(v) else f"{v:.2f}"
     tests = sorted(d.test.unique())
     rows = []
@@ -226,10 +274,10 @@ def point_accuracy(results, out):
             if not pd.isna(r[prot]):
                 macro(f"mae{key}{ptag}", r[prot])
     write_table(out / "tab_point_accuracy.tex",
-                "MAE ($\\mu$m) on each held-out PHM2010 cutter and the cutter-macro mean; each fold "
-                "uses the other two cutters as sources.",
+                "MAE ($\\mu$m) on each held-out PHM2010 tool and the tool-macro mean; each fold "
+                "uses the other two tools as sources.",
                 "tab:point_accuracy",
-                "Split & Model & " + " & ".join(tests) + " & Macro mean", rows,
+                "Split & Model & " + " & ".join(tests) + " & Mean", rows,
                 "ll" + "r" * (len(tests) + 1))
 
 
@@ -265,12 +313,14 @@ def warning(results, out):
                     macro(f"absDelay{tag}", str(abs(int(t.delay_cuts))))  # for "N cuts before/after"
     write_table(out / "tab_warning.tex",
                 "First-warning cut (lead $-$ / delay $+$ relative to the measured crossing) at the "
-                "illustrative 150~$\\mu$m threshold. Tuned cutoffs minimise FP\\,+\\,5FN on source-only "
-                "out-of-cutter predictions; ``3c'' requires three consecutive exceedances. AUC is "
-                "per-cut discrimination of wear $\\geq$150~$\\mu$m.",
+                "illustrative 150~$\\mu$m wear limit, PHM2010. RF: random forest; Curve: quadratic wear "
+                "curve fitted to cut number (no sensors). Tuned cutoffs minimise false positives plus "
+                "5 $\\times$ false negatives on source-only out-of-tool predictions; ``3c'' requires "
+                "three consecutive exceedances. AUC: per-cut area under the receiver operating "
+                "characteristic curve for wear $\\geq$150~$\\mu$m.",
                 "tab:warning",
-                "Split & Cutter & Crossing & RF 150 & RF tuned & RF tuned 3c & Index 150 & Index tuned "
-                "& Index tuned 3c & AUC RF & AUC index",
+                "Split & Tool & Crossing & RF 150 & RF tuned & RF tuned 3c & Curve 150 & Curve tuned "
+                "& Curve tuned 3c & AUC RF & AUC curve",
                 rows, "llrllllllrr", wide=True)
 
 
@@ -340,18 +390,18 @@ def warning_cost(results, out):
     macro("warnWindowMain", str(W0))
     macro("warnWindowsSens", " and ".join(str(w) for w in sorted(d.window.unique()) if w != W0))
     macro("warnOrderSens", "did not change" if not changed else "changed for " + ", ".join(changed))
-    header = ("Split & Cutter & Crossing & RF tuned & RF tuned 3c & RF 150 & Index tuned & "
-              "Index tuned 3c & Index 150")
+    header = ("Split & Tool & Crossing & RF tuned & RF tuned 3c & RF 150 & Curve tuned & "
+              "Curve tuned 3c & Curve 150")
     align = "llr" + "r" * 6
     if has_conf:
-        header += " & RF FP/FN & Index FP/FN"
+        header += " & RF FP/FN & Curve FP/FN"
         align += "rr"
     write_table(out / "tab_warning_cost.tex",
                 f"Decision cost of the first warnings in Table~\\ref{{tab:warning}} (lower is better), "
                 f"scored against a window of {W0} cuts ending at the measured 150~$\\mu$m crossing. "
                 "Premature (P): cost = cuts of tool life given up before the window; timely (T): 0; "
                 "late (L): 5 $\\times$ cuts after the crossing; missed (M): 5 $\\times$ cuts from the "
-                "crossing to cut 315. Totals are sums over the three cutters."
+                "crossing to cut 315. Totals are sums over the three tools."
                 + (" FP/FN: per-cut false positives/negatives of the tuned rule." if has_conf else ""),
                 "tab:warning_cost", header, rows, align, wide=True)
 
@@ -425,6 +475,7 @@ def main():
     wilcoxon_macros(res)
     wilcoxon_macros(res, sfx="_hgb", mprefix="Hgb")
     spearman_macros(res)
+    deployment_guidance(res, out)
     derived_macros()
     stale = out / "tab_ninetool_matched.tex"  # merged into tab_ninetool.tex
     if stale.exists():

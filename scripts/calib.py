@@ -1,4 +1,4 @@
-"""Shared calibration / interval utilities for the IJPHM revision experiments.
+"""Shared calibration / interval utilities for the experiments.
 
 Every experiment script imports from here so that the quantile rule, interval
 score and stage definitions are identical across PHM2010 and the nine-tool data.

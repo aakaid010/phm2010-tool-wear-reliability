@@ -74,6 +74,7 @@ def main():
     run("make_tables.py", "--results", res, "--out", gen)
     run("make_literature_table.py", "--csv", data / "literature.csv", "--out", gen)
     run("fig_results.py", "--results", res, "--out", figs)
+    run("fig_schematics.py", "--out", figs)                               # Figs 1-2 (design only)
     if (paper / "main.tex").exists():
         run("check_manuscript.py", "--tex", paper / "main.tex")
     else:

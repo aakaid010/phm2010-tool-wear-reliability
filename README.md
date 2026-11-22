@@ -1,11 +1,8 @@
-# Calibration Sources for Conformal Tool-Wear Prediction Under Tool and Machine Shift
-and Machine Shift
+# Choosing Calibration Data for Reliable Tool-Wear Prediction Intervals on New Tools and New Machines in Milling
 
 Code, result files and the literature table behind the paper
 
-> K. A. A. Akaid and F. Fariha, *Calibration Must Match the Deployment Shift: Prediction-Interval
-> Reliability for New Tools and New Machines in Milling Wear Monitoring*, submitted to the
-> International Journal of Prognostics and Health Management.
+> K. A. A. Akaid and F. Fariha, *Choosing Calibration Data for Reliable Tool-Wear Prediction Intervals on New Tools and New Machines in Milling*. Manuscript in preparation.
 
 Archived on Zenodo (concept DOI, resolves to the latest version):
 [10.5281/zenodo.24378510](https://doi.org/10.5281/zenodo.24378510). License: MIT.
@@ -45,26 +42,30 @@ Raw data are not redistributed here. The feature tables (`data/phm_features.csv`
 
 ## Map from the paper to the code
 
-Table and figure numbers refer to the submitted manuscript.
+Table and figure numbers refer to the current manuscript.
 
 | Paper item | Produced by | From |
 | --- | --- | --- |
+| Figure 1 (study overview), Figure 2 (calibration sources) | `scripts/fig_schematics.py` (design only, no data) | — |
 | Table 1 (literature; `tab:literature`) and the study counts in Sections 1–2 | `scripts/make_literature_table.py` | `data/literature.csv` (one row per study, with the evidence sentence and whether the full text or only the abstract was read) |
-| Table 2 (PHM2010 matched calibration sources; `tab:phm_matched`) | `scripts/make_tables.py` | `results/t1_matched_rf.csv`, `t1_matched_hgb.csv` (`phm2010_rf_chrono.py`, RF and `--model hgb --matched-only`), `t1_label_range.csv` (`phm2010_label_range.py`) |
-| Tables 3–4 (nine-tool, RF and HGB; `tab:ninetool`, `tab:ninetool_hgb`) | `scripts/make_tables.py` | `results/t3_deploy*.csv`, `t3_machine_out*.csv`, `t3_matched*.csv` (`ninetool_calibration.py`, RF and `--model hgb`) |
-| Wilcoxon results quoted in Sections 4.2–4.3 | `scripts/stats_wilcoxon.py` → `make_tables.py` | `results/t3_wilcoxon_tests*.csv`, `t3_wilcoxon_pertool*.csv` |
-| Wear-rate mismatch (Section 4.4) | `scripts/fig_wear_mismatch.py` → `make_tables.py` | `results/t5_spearman.csv`, `t5_wear_mismatch.csv` |
-| Table 5 (point accuracy, per cutter; `tab:point_accuracy`) | `scripts/make_tables.py` | `results/t2_point_accuracy.csv` (`phm2010_rf_chrono.py`) |
-| Table 6 (first warnings; `tab:warning`) | `scripts/make_tables.py` | `results/t2_warning_timing.csv` (`phm2010_rf_chrono.py`) |
-| Table 7 (warning decision cost; `tab:warning_cost`) | `scripts/warning_cost.py` → `make_tables.py` | `results/t2_warning_timing.csv` → `results/t2_warning_cost.csv` |
-| Figure 1 (study overview and pipeline), Figure 2 (calibration sources) | drawn in draw.io (no data) | — |
+| Tables 2–3 (nine-tool, RF and HGB; `tab:ninetool`, `tab:ninetool_hgb`) | `scripts/make_tables.py` | `results/t3_deploy*.csv`, `t3_machine_out*.csv`, `t3_matched*.csv` (`ninetool_calibration.py`, RF and `--model hgb`) |
+| Wilcoxon results quoted in Sections 4.1–4.2 | `scripts/stats_wilcoxon.py` → `make_tables.py` | `results/t3_wilcoxon_tests*.csv`, `t3_wilcoxon_pertool*.csv` |
 | Figure 3 (per-tool coverage at 90%), Figure 4 (coverage vs nominal level) | `scripts/fig_results.py` | `results/t3_deploy.csv`, `results/t3_machine_out.csv` |
+| Table 4 (interval width in µm and runs of tool life; `tab:deploy_guidance`) | `scripts/make_tables.py` (`deployment_guidance`) | `results/t3_deploy.csv`, `t3_machine_out.csv`, `wear_rate_ninetool.csv` |
+| Table 5 (first warnings; `tab:warning`) | `scripts/make_tables.py` | `results/t2_warning_timing.csv` (`phm2010_rf_chrono.py`) |
+| Table 6 (warning decision cost; `tab:warning_cost`) | `scripts/warning_cost.py` → `make_tables.py` | `results/t2_warning_timing.csv` → `results/t2_warning_cost.csv` |
+| Table 7 (PHM2010 matched calibration sources; `tab:phm_matched`) | `scripts/make_tables.py` | `results/t1_matched_rf.csv`, `t1_matched_hgb.csv` (`phm2010_rf_chrono.py`, RF and `--model hgb --matched-only`), `t1_label_range.csv` (`phm2010_label_range.py`) |
+| Wear-rate mismatch (Section 4.4) | `scripts/fig_wear_mismatch.py` → `make_tables.py` | `results/t5_spearman.csv`, `t5_wear_mismatch.csv` |
+| Table 8 (point accuracy, per tool; `tab:point_accuracy`) | `scripts/make_tables.py` | `results/t2_point_accuracy.csv` (`phm2010_rf_chrono.py`) |
 | Every other number in the text | `scripts/make_tables.py` → `generated/numbers.tex` | the result files above |
 
 Shared code: `scripts/calib.py` (conformal quantile with equal tool weights, interval score,
 life-stage split). Features: `scripts/features_phm2010.py` and `scripts/features_ninetool.py`, ported
 unchanged from the feature-extraction cells of the two notebooks in `notebooks/`.
-`scripts/verify_references.py` checks every DOI in the paper's `references.bib` against Crossref/DataCite.
+`scripts/verify_references.py` checks every DOI in the paper's `references.bib` against Crossref/DataCite, and
+`scripts/make_reference_audit.py` writes the audit table. `scripts/check_manuscript.py`, `check_numbers.py` and
+`list_key_numbers.py` check the manuscript source; `scripts/flatten.py` builds the single-file LaTeX
+submission (no `\input`, figures renamed Fig1–FigN).
 
 ## Environment
 
@@ -111,15 +112,14 @@ archive/              exploratory work not used in the paper (see archive/README
 
 If you use this code, please cite the Zenodo archive (concept DOI, always resolves to the latest version):
 
-> K. A. A. Akaid and F. Fariha. *Code for: Calibration Must Match the Deployment Shift — prediction-interval
-> reliability in milling wear monitoring*. Zenodo. doi:[10.5281/zenodo.24378510](https://doi.org/10.5281/zenodo.24378510)
+> K. A. A. Akaid and F. Fariha. *Code for: Choosing Calibration Data for Reliable Tool-Wear Prediction Intervals on New Tools and New Machines in Milling*. Zenodo. doi:[10.5281/zenodo.24378510](https://doi.org/10.5281/zenodo.24378510)
 
 ```bibtex
 @software{akaid_fariha_code,
   author    = {Akaid, Kazi Ahsan Ahmed and Fariha, Faozia},
-  title     = {Code for: Calibration Must Match the Deployment Shift --- prediction-interval reliability in milling wear monitoring},
+  title     = {Code for: Choosing Calibration Data for Reliable Tool-Wear Prediction Intervals on New Tools and New Machines in Milling},
   publisher = {Zenodo},
-  version   = {v1.1},
+  version   = {v1.3},
   doi       = {10.5281/zenodo.24378510},
   url       = {https://doi.org/10.5281/zenodo.24378510}
 }
