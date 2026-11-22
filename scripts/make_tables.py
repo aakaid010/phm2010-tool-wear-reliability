@@ -33,11 +33,15 @@ SCHEME_LABEL = {"S1_same_tools": "S1 held-out block of training tools",
                 "S4u_loto_unweighted": "S4 (unweighted quantile)",
                 "S5_lomo": "S5 leave-one-machine-out"}
 MACROS: dict[str, str] = {}
+RAW: dict[str, float] = {}  # unrounded values, so derived ratios are not computed from rounded text
+PCT_UM = "{:.1f}"  # coverage (%) and width / interval score (um): one decimal, as in the tables
 
 
 def macro(name, value, fmt="{:.2f}"):
     assert name.isalpha(), f"LaTeX macro names must be letters only: {name}"
     MACROS[name] = fmt.format(value) if not isinstance(value, str) else value
+    if not isinstance(value, str):
+        RAW[name] = float(value)
 
 
 def write_table(path, caption, label, header, rows, align, fit=True, wide=False):
@@ -117,20 +121,20 @@ def phm_matched(results, out):
                     ptag = {"chrono": "Chrono", "v2": "Ilv"}[prot]
                     macro(f"maxTrainLabel{ptag}",
                           lr[(lr.protocol == prot) & (lr.reference == ref)].upper.max())
-                macro(f"covRange{tag}", r[("coverage", "mean")])
-                macro(f"widRange{tag}", r[("width", "mean")])
-                macro(f"isRange{tag}", r[("interval_score", "mean")])
-                macro(f"covLastRange{tag}", r[("cov_stage3", "mean")])
+                macro(f"covRange{tag}", r[("coverage", "mean")], PCT_UM)
+                macro(f"widRange{tag}", r[("width", "mean")], PCT_UM)
+                macro(f"isRange{tag}", r[("interval_score", "mean")], PCT_UM)
+                macro(f"covLastRange{tag}", r[("cov_stage3", "mean")], PCT_UM)
     for (prot, model, src), r in g.iterrows():
         tag = {"chrono": "Chrono", "v2": "Ilv"}[prot] + {"RF": "RF", "HGB": "Hgb"}[model] + \
             {"same_cutter": "Same", "other_cutter_same_range": "OtherRange",
              "other_cutter_full_life": "OtherFull"}[src]
-        macro(f"cov{tag}", r[("coverage", "mean")])
-        macro(f"covmin{tag}", r[("coverage", "min")])
-        macro(f"wid{tag}", r[("width", "mean")])
-        macro(f"is{tag}", r[("interval_score", "mean")])
-        macro(f"covLast{tag}", r[("cov_stage3", "mean")])      # final third of tool life
-        macro(f"covminLast{tag}", r[("cov_stage3", "min")])
+        macro(f"cov{tag}", r[("coverage", "mean")], PCT_UM)
+        macro(f"covmin{tag}", r[("coverage", "min")], PCT_UM)
+        macro(f"wid{tag}", r[("width", "mean")], PCT_UM)
+        macro(f"is{tag}", r[("interval_score", "mean")], PCT_UM)
+        macro(f"covLast{tag}", r[("cov_stage3", "mean")], PCT_UM)      # final third of tool life
+        macro(f"covminLast{tag}", r[("cov_stage3", "min")], PCT_UM)
     write_table(out / "tab_phm_matched.tex",
                 "PHM2010 matched calibration-source comparison at nominal 90\\%: for each model, identical "
                 "test predictions; only the calibration residuals change. RF: random forest; HGB: "
@@ -160,8 +164,8 @@ def wilcoxon_macros(results, sfx="", mprefix=""):
         macro(f"wilP{tag}", r.p_exact_two_sided, "{:.4f}")
         macro(f"wilW{tag}", r.W, "{:.0f}")
         macro(f"wilN{tag}", str(int(r.n_units)))
-        macro(f"wilMeanDiff{tag}", r.mean_diff_a_minus_b)
-        macro(f"wilMedDiff{tag}", r.median_diff_a_minus_b)
+        macro(f"wilMeanDiff{tag}", r.mean_diff_a_minus_b, PCT_UM)
+        macro(f"wilMedDiff{tag}", r.median_diff_a_minus_b, PCT_UM)
         better = r.n_b_greater if r.statistic_compared == "raw_coverage" else r.n_a_greater
         macro(f"wilBetter{tag}", str(int(better)))
 
@@ -183,7 +187,7 @@ def spearman_macros(results):
 def derived_macros():
     """Ratios quoted in the text, computed from macros already generated (never typed)."""
     def f(k):
-        return float(MACROS[k])
+        return RAW[k]
     pairs = {
         "ratioWidLateLoto": ("widToolSOneLate", "widToolSFour"),
         "ratioWidHgbLateLoto": ("widHgbToolSOneLate", "widHgbToolSFour"),
@@ -213,6 +217,20 @@ def deployment_guidance(results, out, level=0.9):
     macro("slopeLastMedNine", float(last.median()), "{:.2f}")
     macro("slopeLastMinNine", float(last.min()), "{:.2f}")
     macro("slopeLastMaxNine", float(last.max()), "{:.2f}")
+    # Total runs per tool, derived from the result files themselves: under leave-one-tool-out,
+    # n_cal of test tool i is the run count of the eight other tools, N - n_i, so
+    # N = sum_i n_cal_i / 8 and n_i = N - n_cal_i. Cross-checked against the leave-one-machine-out
+    # calibration sizes (N minus the runs of the test machine's three tools).
+    lo = dep[(dep.scheme == "S4_loto") & np.isclose(dep.level, level)].set_index("test").n_cal
+    n_total = lo.sum() / (len(lo) - 1)
+    n_runs = n_total - lo
+    lm = mo[(mo.scheme == "S5_lomo") & np.isclose(mo.level, level)].groupby("machine").n_cal.first()
+    for m_id, ncal in lm.items():
+        own = n_runs[[t for t in n_runs.index if t.startswith(f"M{m_id}T")]].sum()
+        assert abs(ncal - (n_total - own)) < 0.5, f"run-count cross-check failed for machine {m_id}"
+    macro("nRunsTotalNine", f"{n_total:,.0f}".replace(",", "{,}"))
+    macro("nRunsMinNine", float(n_runs.min()), "{:.0f}")
+    macro("nRunsMaxNine", float(n_runs.max()), "{:.0f}")
     specs = [("New tool", dep, "S1_same_tools", "interleaved", "ToolSOneInt", "S1 interleaved blocks"),
              ("New tool", dep, "S1_same_tools", "late", "ToolSOneLate", "S1 late-life blocks"),
              ("New tool", dep, "S4_loto", "-", "ToolSFour", "S4 leave-one-tool-out"),
@@ -223,13 +241,15 @@ def deployment_guidance(results, out, level=0.9):
         g = d[(d.scheme == scheme) & (d.block == block) & np.isclose(d.level, level)].set_index("test")
         q = g.q
         runs = q / last.reindex(q.index)
+        life = 100 * runs / n_runs.reindex(q.index)  # share of the tool's total runs
         macro(f"halfWid{tag}", float(q.mean()), "{:.1f}")
         macro(f"pctAbove{tag}", float(g.pct_above.mean()), "{:.1f}")
         macro(f"pctAboveWorst{tag}", float(g.pct_above.max()), "{:.1f}")
         macro(f"runsHalf{tag}", float(runs.median()), "{:.0f}")
+        macro(f"lifeHalf{tag}", float(life.median()), "{:.1f}")
         rows.append([shift, lab, f"{g.coverage.mean():.1f}", f"{g.cov_stage3.mean():.1f}",
                      f"{q.mean():.1f}", f"{g.pct_above.mean():.1f} / {g.pct_above.max():.1f}",
-                     f"{runs.median():.0f}"])
+                     f"{runs.median():.0f}", f"{life.median():.1f}"])
     write_table(out / "tab_deploy_guidance.tex",
                 "Practical reading of the nine-tool RF intervals at nominal 90\\%. Half-width: "
                 "interval half-width in $\\mu$m of flank wear $VB$ (mean over the nine held-out tools). "
@@ -237,10 +257,13 @@ def deployment_guidance(results, out, level=0.9):
                 "if the upper bound triggers replacement, these are the cases in which the tool is "
                 "more worn than the interval admits. Runs given up: half-width divided by each tool's "
                 "own final-third wear rate, median over tools; this is the tool life sacrificed when "
-                "replacement is triggered by the upper bound rather than by the point prediction",
+                "replacement is triggered by the upper bound rather than by the point prediction. "
+                "Tool life given up: each tool's runs given up divided by its total number of runs, "
+                "median over tools",
                 "tab:deploy_guidance",
                 "Shift & Calibration source & Coverage (\\%) & Final third (\\%) & Half-width "
-                "($\\mu$m) & Above upper bound (\\%) & Runs given up", rows, "llrrrrr", wide=True)
+                "($\\mu$m) & Above upper bound (\\%) & Runs given up & Tool life given up (\\%)",
+                rows, "llrrrrrr", wide=True)
 
 
 def point_accuracy(results, out):
@@ -431,12 +454,12 @@ def ninetool(results, out, sfx="", model_label="RF", mprefix=""):
                 {"S1_same_tools": "SOne", "S2_same_machine": "STwo", "S3_other_machine": "SThree",
                  "S4_loto": "SFour", "S4u_loto_unweighted": "SFourU",
                  "S5_lomo": "SFive"}[scheme] + {"interleaved": "Int", "late": "Late", "-": ""}[block]
-            macro(f"cov{key}", r[("coverage", "mean")])
-            macro(f"covmin{key}", r[("coverage", "min")])
-            macro(f"wid{key}", r[("width", "mean")])
-            macro(f"is{key}", r[("interval_score", "mean")])
-            macro(f"covLast{key}", r[("cov_stage3", "mean")])     # final third of tool life
-            macro(f"covminLast{key}", r[("cov_stage3", "min")])
+            macro(f"cov{key}", r[("coverage", "mean")], PCT_UM)
+            macro(f"covmin{key}", r[("coverage", "min")], PCT_UM)
+            macro(f"wid{key}", r[("width", "mean")], PCT_UM)
+            macro(f"is{key}", r[("interval_score", "mean")], PCT_UM)
+            macro(f"covLast{key}", r[("cov_stage3", "mean")], PCT_UM)     # final third of tool life
+            macro(f"covminLast{key}", r[("cov_stage3", "min")], PCT_UM)
         if ktag in ("Tool", "Mach"):  # point error of the final (all-source) model, per tool then mean
             s4 = d[d.scheme == "S4_loto"].groupby("test").test_mae.mean()
             macro(f"mae{mprefix}{ktag}", s4.mean())
