@@ -1,11 +1,32 @@
-# Choosing Calibration Data for Reliable Tool-Wear Prediction Intervals on New Tools and New Machines in Milling
+# Calibration Sources for Tool-Wear Prediction Intervals Under Tool and Machine Shift in Milling
 
 Code, result files and the literature table behind the paper
 
-> K. A. A. Akaid and F. Fariha, *Choosing Calibration Data for Reliable Tool-Wear Prediction Intervals on New Tools and New Machines in Milling*. Manuscript in preparation.
+> K. A. A. Akaid and F. Fariha, *Calibration Sources for Tool-Wear Prediction Intervals Under Tool and Machine Shift in Milling*. Submitted to *The International Journal of Advanced Manufacturing Technology*.
 
 Archived on Zenodo (concept DOI, resolves to the latest version):
 [10.5281/zenodo.24378510](https://doi.org/10.5281/zenodo.24378510). License: MIT.
+
+## Main results
+
+Split-conformal prediction intervals for tool wear are only as reliable as the data used to calibrate
+them. On the nine-tool dataset (9 tools on 3 machines, random forest, nominal 90% coverage, mean over
+tools; from `results/t3_summary.txt`):
+
+| Deployment | Calibration source | Coverage (%) | Mean width (µm) |
+| --- | --- | --- | --- |
+| New tool, seen machine | Residuals of the training tools (interleaved cuts) | 53.7 | 11.0 |
+| New tool, seen machine | Late-life block of the training tools | 97.4 | 90.4 |
+| New tool, seen machine | Leave-one-tool-out | 88.8 | 29.4 |
+| New machine | Residuals of the training tools (interleaved cuts) | 29.1 | 10.9 |
+| New machine | Leave-one-tool-out | 65.8 | 30.2 |
+| New machine | Leave-one-machine-out | 94.5 | 57.3 |
+
+Calibration data must reproduce the shift the model will face in deployment: held-out tools for a new
+tool, held-out machines for a new machine. In-sample residuals give intervals far below nominal coverage,
+and a late-life block reaches coverage only with intervals about three times wider. Gradient boosting
+gives the same pattern (`results/t3_summary_hgb.txt`; leave-one-tool-out 90.5%, leave-one-machine-out
+96.6%). With 9 tools and 3 machines, these are descriptive results, not general guarantees.
 
 ## Quick start
 
@@ -92,7 +113,7 @@ its configuration file. Random-forest results can change slightly across scikit-
 * Not rerun here: raw data → features → `results/`. The PHM2010 raw data require a download that
   was not available in this environment.
 * Pending rerun: `phm2010_rf_chrono.py` now also writes per-cut false positives/negatives of each warning
-  rule (`fp_cuts`, `fn_cuts`); `results/t2_warning_timing.csv` predates this change, so Table 7 shows
+  rule (`fp_cuts`, `fn_cuts`); `results/t2_warning_timing.csv` predates this change, so Table 5 shows
   them only after a rerun.
 
 ## Repository layout
@@ -112,12 +133,12 @@ archive/              exploratory work not used in the paper (see archive/README
 
 If you use this code, please cite the Zenodo archive (concept DOI, always resolves to the latest version):
 
-> K. A. A. Akaid and F. Fariha. *Code for: Choosing Calibration Data for Reliable Tool-Wear Prediction Intervals on New Tools and New Machines in Milling*. Zenodo. doi:[10.5281/zenodo.24378510](https://doi.org/10.5281/zenodo.24378510)
+> K. A. A. Akaid and F. Fariha. *Code for: Calibration Sources for Tool-Wear Prediction Intervals Under Tool and Machine Shift in Milling*. Zenodo. doi:[10.5281/zenodo.24378510](https://doi.org/10.5281/zenodo.24378510)
 
 ```bibtex
 @software{akaid_fariha_code,
   author    = {Akaid, Kazi Ahsan Ahmed and Fariha, Faozia},
-  title     = {Code for: Choosing Calibration Data for Reliable Tool-Wear Prediction Intervals on New Tools and New Machines in Milling},
+  title     = {Code for: Calibration Sources for Tool-Wear Prediction Intervals Under Tool and Machine Shift in Milling},
   publisher = {Zenodo},
   version   = {v1.3},
   doi       = {10.5281/zenodo.24378510},
